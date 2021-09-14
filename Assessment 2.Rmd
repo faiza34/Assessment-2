@@ -1,0 +1,313 @@
+---
+date: "04/09/2021"
+output:
+  html_document: default
+  word_document: default
+---
+
+# Title : Assignment 2
+
+---
+
+## Student Name & Id: *Syeda Faiza Hussain* - **s4647284**
+
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
+
+```
+
+![Photo](picture of myself.jpg)
+
+```{r}
+#install.packages("tidyverse")
+library(tidyverse)
+library(knitr)
+library(skimr)
+library(ggplot2)
+
+thanksgiving_data <-read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2018/2018-11-20/thanksgiving_meals.csv")
+
+thanksgiving_data %>% 
+  head()
+
+```
+
+### **Part 2**: Data Wrangling and visualization:
+
+### 1. Display the first 10 rows of the dataset using RMarkdown.
+
+```{r}
+
+head(thanksgiving_data, 10) %>%
+  kable()
+
+```
+
+### 2.	Use fct_reorder and parse_number functions to create a factor variable family_income.
+
+```{r}
+  
+income<- thanksgiving_data %>% 
+  filter(family_income!= "Prefer not to answer") %>% 
+  mutate(income=fct_reorder(family_income, parse_number(family_income)))
+
+head(income) %>% 
+  select(income) %>% 
+  arrange(desc(income))
+
+#In this, first, I have filter the variable "family income" and then use mutate function to create new variable and then use fct_reorder to make it factor variable. The parse number is used to give the values of family income to new variable income.
+```
+
+### 3.Generate the general statistics of the dataset using summary() and skim() function.
+
+```{r}
+
+kable(summary(thanksgiving_data))
+
+skim(thanksgiving_data)
+
+```
+
+### 4.What is the number of people who celebrate?
+
+```{r}
+
+thanksgiving_data %>%
+  filter(celebrate=="Yes") %>% 
+  count(celebrate, sort = TRUE) %>% 
+  kable()
+
+```
+
+### 5.What are categories and stats for each main dish served and the method it is prepared?
+
+```{r}
+
+thanksgiving_data %>% 
+  group_by(main_dish) %>% 
+  ungroup() %>% 
+  count(main_dish, main_prep, sort = TRUE) %>%
+  filter(main_prep!= "Other (please specify)", main_prep!= "NA", main_prep!= "I don't know", main_dish!= "Other (please specify)", main_dish!= "I don't know") %>% 
+  kable()
+
+#In this, we have to count three variables, main dish, its number and the method it is prepared.
+
+```
+
+### 6.Create a data viz showing this in the most evident way. Provide your own legend and use themes.
+
+```{r}
+
+library(ggplot2)
+thanksgiving_data %>%
+  group_by(main_dish) %>% 
+  count(main_dish, main_prep, sort = TRUE) %>%
+  filter(main_prep!= "Other (please specify)", main_prep!= "NA", main_prep!= "I don't know", main_dish!= "Other (please specify)", main_dish!= "I don't know") %>% 
+  na.omit(thanksgiving_data) %>% 
+  ungroup() %>%
+  ggplot(aes(x=main_dish, n, fill=main_prep)) +
+  geom_col() +
+  facet_wrap(~main_prep) +
+  coord_flip() +
+  geom_text(aes(label= round(digits = 4, n)), size= 3, vjust= -0.20, color= 'black') +
+  theme_gray()+
+  labs(x="Names of Main Dish", y="Number of Main Prep  ", title="Data Visualization of Main Dish Versus Main Prep", caption="Col Graph of Main Dish with Main Prep")
+
+```
+
+### 7.How many use cranberry sauce? How many use gravy?
+```{r}
+
+thanksgiving_data %>%
+  count(cranberry) %>% 
+  filter(cranberry== "Canned"| cranberry== "Homemade") %>% 
+  kable()
+
+# In this, I filter the cranberry sauce observations by selecting canned and Homemade.
+
+```
+
+```{r}
+
+thanksgiving_data %>%
+  filter(gravy=="Yes") %>% 
+  count(gravy, sort = TRUE) %>% 
+  kable()
+
+ #I use count function to with filter to take out number of people who use gravy. More people are shown using gravy than cranberry sauce in the survey.
+
+```
+
+### 8.What is the distribution of those who celebrate across income ranges?
+```{r}
+
+thanksgiving_data %>%
+  group_by(celebrate) %>% 
+  filter(celebrate=="Yes", family_income!= "Prefer not to answer") %>% 
+  count(celebrate, family_income, sort = TRUE) %>% 
+  na.omit(thanksgiving_data) %>% 
+  ungroup() %>% 
+  kable()
+
+#I first group by celebrate and then count family income with only those who celebrate.
+
+```
+
+### 9.Present this information in the most evident way on the data viz.
+```{r}
+
+thanksgiving_data %>%
+  group_by(family_income) %>% 
+  count(celebrate, family_income) %>% 
+  filter(celebrate=="Yes", family_income!= "Prefer not to answer") %>% 
+  na.omit(thanksgiving_data) %>% 
+  ungroup() %>% 
+  ggplot(aes(x=family_income, n, fill="celebrate")) +
+  geom_col(color= "yellow") +
+  coord_flip() +
+  geom_text(aes(label= round(digits = 4, n)), size= 3, vjust= -0.20, color= 'blue') +
+  labs(x="Family Income", y="Number of Individuals ", title="Data Visualization of Income Range Versus Celebration", caption="Col Graph of Family Income Versus celebrate")
+```
+
+### 10.What are the most common pies, sides, and desserts?
+
+
+```{r}
+
+common_pie<- thanksgiving_data %>%
+  gather("common", "common_pie", starts_with("pie")) %>%
+  count(common_pie= fct_lump(common_pie, 10), sort = TRUE) %>% 
+  filter(!is.na(common_pie), common_pie!= "None", common_pie!= "Other (please specify)", common_pie!= "Other") %>% 
+  mutate(common_pie= fct_reorder(common_pie, n))
+
+head(common_pie)
+
+#I first gather all the pie columns in the new data and then count them. I use the fct_lump function to select first 10 common pies with good values. Then, I use the filter to remove all missing values from data. In the end, I use mutate function to create new data and use fct_reorder to reorder our factor variable common_pie. I used the same procedure for side and dessert.
+
+```
+
+```{r}
+
+common_side<- thanksgiving_data %>%
+  gather("common", "common_side", starts_with("side")) %>%
+  count(common_side= fct_lump(common_side, 14), sort = TRUE) %>% 
+  filter(!is.na(common_side), common_side!= "Other (please specify)", common_side!= "Other" ) %>% 
+  mutate(common_side= fct_reorder(common_side, n))
+
+head(common_side)
+  
+#gather() collects a set of column names and places them into a single “key” column.
+
+```
+
+```{r}
+
+common_dessert<- thanksgiving_data %>%
+  gather("common", "common_dessert", starts_with("dessert")) %>% 
+  count(common_dessert= fct_lump(common_dessert, 10), sort = TRUE) %>%
+  filter(!is.na(common_dessert), common_dessert!= "None", common_dessert!= "Other (please specify)") %>% 
+  mutate(common_dessert= fct_reorder(common_dessert, n))
+
+head(common_dessert)
+
+```
+
+### 11.Present this information on a data viz.
+
+```{r}
+
+common_pie<- thanksgiving_data %>%
+  gather("common", "common_pie", starts_with("pie")) %>%
+  count(common_pie= fct_lump(common_pie, 10), sort = TRUE) %>% 
+  filter(!is.na(common_pie), common_pie!= "None", common_pie!= "Other (please specify)", common_pie!= "Other") %>% 
+  mutate(common_pie= fct_reorder(common_pie, n)) %>% 
+  ggplot(aes(x=common_pie, n, fill= "common_pie")) +
+  geom_col() +
+  geom_text(aes(label= round(digits = 2, n)), size= 3, vjust= -0.20, color= "black") +
+  coord_flip() +
+  theme_linedraw () +
+  labs(x="Names of Pies", y="Number of Pies ", title="Data Visualization of Common Pies", caption="Col Graph of Names of Common Pies")
+
+  
+  print(common_pie)
+  
+  #The only thing which is different in this data is the print (common_pie) as without it the graph will not show in the output and will only show as list in environment. I have used the same method for side and dessert.
+  
+  
+```
+
+```{r}
+common_side<- thanksgiving_data %>%
+  gather("common", "common_side", starts_with("side")) %>%
+  count(common_side= fct_lump(common_side, 14), sort = TRUE) %>% 
+  filter(!is.na(common_side), common_side!= "Other (please specify)", common_side!= "Other" ) %>% 
+  mutate(common_side= fct_reorder(common_side, n)) %>% 
+  ggplot(aes(x=common_side, n, fill= "common_side")) +
+  geom_col(color="orange") +
+  geom_text(aes(label= round(digits = 2, n)), size= 3, vjust= -0.20, color= "black") +
+  coord_flip() +
+  theme_linedraw () +
+  labs(x="Names of Sides", y="Number of Sides ", title="Data Visualization of Common Sides", caption="Col Graph of Names of Common Sides")
+
+  
+  print(common_side)
+  
+  
+```
+
+```{r}
+common_dessert<- thanksgiving_data %>%
+  gather("common", "common_dessert", starts_with("dessert")) %>% 
+  count(common_dessert= fct_lump(common_dessert, 10), sort = TRUE) %>%
+  filter(!is.na(common_dessert), common_dessert!= "None", common_dessert!= "Other (please specify)") %>% 
+  mutate(common_dessert= fct_reorder(common_dessert, n)) %>% 
+  ggplot(aes(x=common_dessert, n, fill= "common_dessert")) +
+  geom_col(color="red") +
+  geom_text(aes(label= round(digits = 2, n)), size= 3, vjust= -0.20, color= "black") +
+  coord_flip() +
+  theme_linedraw () +
+  labs(x="Names of Desserts", y="Number of Desserts ", title="Data Visualization of Common Desserts", caption="Col Graph of Names of Common Desserts")
+
+  
+  print(common_dessert)
+  
+  
+```
+
+
+### 12.How do the servings differ by income?
+
+```{r}
+
+thanksgiving_data %>% 
+  select(main_dish, family_income) %>%
+  filter(main_dish!= "Other (please specify)", main_dish!= "None", main_dish!= "I don't know", family_income!= "Prefer not to answer") %>% 
+  count(family_income, main_dish, sort = TRUE) %>%
+  na.omit(thanksgiving_data) %>% 
+  kable()
+
+#In this, I have first select the variables and then count it and filter the missing observations.
+
+```
+
+### 13.Present this information on a data viz?
+
+```{r}
+
+thanksgiving_data %>% 
+  select(main_dish, family_income) %>% 
+  filter(main_dish!= "Other (please specify)", main_dish!= "None", main_dish!= "I don't know", family_income!= "Prefer not to answer") %>% 
+  count(family_income, main_dish, sort = TRUE) %>%
+  na.omit(thanksgiving_data) %>% 
+  ggplot(aes(x=main_dish, n)) +
+  geom_col(color= 'red') +
+  facet_wrap(family_income~.) +
+  geom_text(aes(label= round(digits = 2, n)), size= 2.5, vjust= -0.25, color= "white") +
+  coord_flip() +
+  theme_dark() +
+  labs(x="Family Income", y="Main Dish ", title="Data Visualization of Main Dish Versus Family Income", caption="Col Graph of Main Dish in Comparison to Family Income")
+  
+
+```
